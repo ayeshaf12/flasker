@@ -1,29 +1,34 @@
+{% extends 'base.html'%}
 
-<!-- jinja variable adding and filters for text for instance uppercase -->
-<h1>Hello {{ user_name|upper }}</h1>
-<h2>Hello {{ user_name|capitalize}}</h2>
-<h3>Hello {{ user_name|lower}}</h3>
+{% block content %}
 
-<h4>{{first_name}} is my best friend !!!</h4>
-<p>{{stuff|safe}}</p>
-<p>{{stuff|striptags}}</p>
-<p>{{stuff1|title}}</p>
-<!-- for printing list you need to do a for loop, the below tag is going to print the list as it is -->
-<p>My favorite pizza are : {{favorite_pizza}}</p>
-<!-- For loop to print the list -->
- <h3>Running loop to print the list:</h3>
- {% for i in favorite_pizza %}
-    {{ i }}</br>
- {% endfor %}
-</br>
-<h3>Running if statement to print the list:</h3>
- {% for item in favorite_pizza %}
-    {% if item == 49 %}
-        {{ item + 100 }}</br>
-    {% else %}
-        {{ item }}</br>
-    {% endif %}
- {% endfor %}
-</br>
-<p> Indexing : {{favorite_pizza.1}} </p>
-<p> Reversing: {{favorite_pizza.1|reverse}} </p>
+    <!-- jinja variable adding and filters for text for instance uppercase -->
+    <h1>Hello {{ user_name|upper }}</h1>
+    <h2>Hello {{ user_name|capitalize}}</h2>
+    <h3>Hello {{ user_name|lower}}</h3>
+
+    <h4>{{first_name}} is my best friend !!!</h4>
+    <p>{{stuff|safe}}</p>
+    <p>{{stuff|striptags}}</p>
+    <p>{{stuff1|title}}</p>
+    <!-- for printing list you need to do a for loop, the below tag is going to print the list as it is -->
+    <p>My favorite pizza are : {{favorite_pizza}}</p>
+    <!-- For loop to print the list -->
+    <h3>Running loop to print the list:</h3>
+    {% for i in favorite_pizza %}
+        {{ i }}</br>
+    {% endfor %}
+    </br>
+    <h3>Running if statement to print the list:</h3>
+    {% for item in favorite_pizza %}
+        {% if item == 49 %}
+            {{ item + 100 }}</br>
+        {% else %}
+            {{ item }}</br>
+        {% endif %}
+    {% endfor %}
+    </br>
+    <p> Indexing : {{favorite_pizza.1}} </p>
+    <p> Reversing: {{favorite_pizza.1|reverse}} </p>
+
+{% endblock %}
