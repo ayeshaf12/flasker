@@ -25,9 +25,9 @@ def add():
     
 
 
-# @app.route('/users/<name>')
-# def users(name):
-#     return render_template("user.html",user_name=name)
+@app.route('/users/<name>')
+def users(name):
+    return render_template("userprofile.html",user_name=name)
 
 
 @app.errorhandler(404)
