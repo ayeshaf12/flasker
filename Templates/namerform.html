@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Enter your information</h1>
+    
+    <form method="POST" id="data-form">
+       {{ form.hidden_tag() }}         <!--  This will create our CSRF token -->
+        
+        <!-- Horizontal layout container -->
+        <div>
+            {% for subfield in form.id_type %}
+                {{ subfield(class="form-check-input") }}
+                {{ subfield.label(class="form-check-label") }}
+            {% endfor %}
+            
+            {{ form.id_value(placeholder="Enter ID") }}
+            {{ form.submit(class="btn btn-secondary") }}
+        </div>
+    </form>
+    
+    <!-- Success message after submission -->
+    {% with message = get_flashed_messages() %}
+        {% if message %}
+            <div class="flash-messages">
+                {% for message in get_flashed_messages() %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+{% endblock %}
