@@ -12,49 +12,84 @@ app= Flask(__name__)
 # Create secret key to avoid hackers for Wtf
 app.config['SECRET_KEY']= "CONFIDENTIAL KEY"
 
-
 # Create a form class
 class NamerForm(FlaskForm):
-    id_type = RadioField('ID Type', choices=[('student_id', 'Student ID'), ('course_id', 'Course ID')], validators=[DataRequired()])
-    id_value = StringField('ID Value', validators=[DataRequired()])
+    id_type = RadioField('', choices=[('student', 'Student id'), ('course', 'Course id')], validators=[DataRequired()])
+    id_value = StringField('', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
 
 # Create namer form
-@app.route('/namerform',methods=['GET','POST'],endpoint='namerform')
+@app.route('/namerform', methods=['GET','POST'], endpoint='namerform')
 def form():
-    form=NamerForm()
+    form = NamerForm()
     if form.validate_on_submit():
         id_type = form.id_type.data
         id_value = form.id_value.data
-        if id_type == 'student id':
+        
+        # Match the values to your choices
+        if id_type == 'student':
             return redirect(url_for('student_details', student_id=id_value))
         elif id_type == 'course':
             return redirect(url_for('course_statistics', course_id=id_value))
-        # form.id_value.data = ''
-        # flash("Form submitted successfully !!! ")
-    return render_template("namerform.html",form=form)
-
-#################################
-# @app.route('/student/<student_id>')
-# def student_details(student_id):
-#     f=open('data.csv',r)
-#     data_list=f.readlines()
-#     student_list=[]
-#     course_list=[]
-#     for each_line in data_list[1:]:
-#             again_list=each_line.split(',')
-#             if F_ID =='st_id' and input_Number== again_list[0].strip():
-#                 student_list.append(each_line)
-#             else:
-#                 if F_ID == 'c_id' and input_Number== again_list[1].strip():
-#                     course_list.append(each_line)
-#############################
+    
+    return render_template("namerform.html", form=form)
 
 
-# @app.route('/')
-# def index():
-#     return render_template("index.html")
+CSV_PATH = 'data.csv'  # Make sure this is in the same directory
+
+@app.route('/student/<student_id>')
+def student_details(student_id):
+    try:
+        # Read CSV with proper column names
+        df = pd.read_csv(CSV_PATH)
+        df.columns = df.columns.str.strip()
+        # Convert to integer for comparison
+        student_id_int = int(student_id)
+        student_data = df[df['Student id'] == student_id_int]  #Keep with spaces
+        
+        if student_data.empty:
+            flash(f'No data found for Student ID: {student_id}', 'warning')
+            return redirect(url_for('namerform'))
+        
+        # Calculate total marks
+        total_marks = student_data['Marks'].sum()
+        
+        # Convert to list of dictionaries for template
+        records = student_data.to_dict('records')
+        
+        return render_template('studentid.html',records=records,total_marks=total_marks,student_id=student_id)
+    except Exception as e:
+        flash(f'Error processing student data: {str(e)}', 'danger')
+        return redirect(url_for('namerform'))
+
+
+@app.route('/course/<course_id>')
+def course_statistics(course_id):
+    try:
+        df = pd.read_csv(CSV_PATH)
+        df.columns = df.columns.str.strip()
+        # Convert to integer for comparison
+        course_id_int = int(course_id)
+        course_data = df[df['Course id'] == course_id_int]  # Keep with space
+        
+        if course_data.empty:
+            flash(f'No data found for Course ID: {course_id}', 'warning')
+            return redirect(url_for('namerform'))
+        
+        # Calculate statistics
+        average = round(course_data['Marks'].mean(), 2)
+        maximum = course_data['Marks'].max()
+        
+        return render_template('courseid.html',average=average,maximum=maximum,course_id=course_id)
+    except Exception as e:
+        flash(f'Error processing course data: {str(e)}', 'danger')
+        return redirect(url_for('namerform'))
+
+
+@app.route('/')
+def index():
+    return render_template("index.html")
 
 # @app.route('/user/<name>')
 # def user(name):

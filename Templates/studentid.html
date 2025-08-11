@@ -1,33 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-
-    <title>Student Details</title>
-</head>
-<body>
-    <table border = "2" id = "student-details-table">
- <tr>
- <th>Student Id</th>
- <th>Course Id</th>
- <th>Marks</th>
- </tr>
- <tr>
- <td>student_id_data</td>
- <td>course_id_data</td>
- <td>marks_data</td>
- </tr>
- ...
- ...
- ...
- <tr>
- <td>student_id_data</td>
- <td>course_id_data</td>
- <td>marks_data</td>
- </tr>
- <tr>
- <td colspan = "2" style="text-align:center"> Total Marks </td>
- <td>total_marks_data</td>
- </tr>
- </table> 
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Student Details for ID: {{ student_id }}</h2>
+    <table class="table table-bordered">
+        <thead class="table-dark">
+            <tr>
+                <th>Student Id</th>
+                <th>Course Id</th>
+                <th>Marks</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record['Student id'] }}</td>
+                <td>{{ record['Course id'] }}</td>
+                <td>{{ record['Marks'] }}</td>
+            </tr>
+            {% endfor %}
+            <tr class="table-info">
+                <td colspan="2" class="text-center fw-bold">Total Marks</td>
+                <td class="fw-bold">{{ total_marks }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
+{% endblock %}

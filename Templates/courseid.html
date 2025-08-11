@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>Course Statistics for ID: {{ course_id }}</h2>
+    <table class="table table-bordered w-50">
+        <thead class="table-dark">
+            <tr>
+                <th>Average Marks</th>
+                <th>Maximum Marks</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ average }}</td>
+                <td>{{ maximum }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
+{% endblock %}

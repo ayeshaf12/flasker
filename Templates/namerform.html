@@ -2,29 +2,50 @@
 {% block content %}
     <h1>Enter your information</h1>
     
-    <form method="POST" id="data-form">
-       {{ form.hidden_tag() }}         <!--  This will create our CSRF token -->
-        
-        <!-- Horizontal layout container -->
-        <div>
-            {% for subfield in form.id_type %}
-                {{ subfield(class="form-check-input") }}
-                {{ subfield.label(class="form-check-label") }}
-            {% endfor %}
-            
-            {{ form.id_value(placeholder="Enter ID") }}
-            {{ form.submit(class="btn btn-secondary") }}
-        </div>
-    </form>
-    
-    <!-- Success message after submission -->
-    {% with message = get_flashed_messages() %}
-        {% if message %}
-            <div class="flash-messages">
-                {% for message in get_flashed_messages() %}
-                    <p>{{ message }}</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages mb-3">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
+    
+    <form method="POST" id="data-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group mb-3">
+            <label class="form-label">{{ form.id_type.label.text }}</label>
+            <div>
+                {% for subfield in form.id_type %}
+                    <div class="form-check form-check-inline">
+                        {{ subfield(class="form-check-input") }}
+                        {{ subfield.label(class="form-check-label") }}
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.id_type.errors %}
+                <div class="text-danger">
+                    {% for error in form.id_type.errors %}
+                        <small>{{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group mb-3">
+            <label class="form-label">{{ form.id_value.label.text }}</label>
+            {{ form.id_value(class="form-control", placeholder="Enter ID") }}
+            {% if form.id_value.errors %}
+                <div class="text-danger">
+                    {% for error in form.id_value.errors %}
+                        <small>{{ error }}</small>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
 {% endblock %}
