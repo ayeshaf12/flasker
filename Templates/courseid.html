@@ -1,19 +1,25 @@
 {% extends 'base.html' %}
 {% block content %}
     <h2>Course Statistics for ID: {{ course_id }}</h2>
-    <table class="table table-bordered w-50">
-        <thead class="table-dark">
-            <tr>
-                <th>Average Marks</th>
-                <th>Maximum Marks</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>{{ average }}</td>
-                <td>{{ maximum }}</td>
-            </tr>
-        </tbody>
+    
+    <table border="2" id="course-details-table">
+        <tr>
+            <th>Average Marks</th>
+            <th>Maximum Marks</th>
+        </tr>
+        <tr>
+            <td>{{ average }}</td>
+            <td>{{ maximum }}</td>
+        </tr>
     </table>
-    <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
+    
+    <!-- Histogram section -->
+    <div style="margin-top: 30px;">
+        <h3>Marks Distribution</h3>
+        <img src="{{ plot_url }}" alt="Marks Histogram" style="max-width: 100%;">
+    </div>
+    
+    <a href="{{ url_for('namerform') }}" style="display: block; margin-top: 20px;">
+        Back to Form
+    </a>
 {% endblock %}

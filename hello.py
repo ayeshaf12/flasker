@@ -4,10 +4,13 @@ from wtforms import RadioField, StringField, SubmitField
 from wtforms.validators import DataRequired
 import csv
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
 import matplotlib.pyplot as plt
 import os
+import logging
 
-
+    
 app= Flask(__name__)
 # Create secret key to avoid hackers for Wtf
 app.config['SECRET_KEY']= "CONFIDENTIAL KEY"
@@ -67,25 +70,58 @@ def student_details(student_id):
 @app.route('/course/<course_id>')
 def course_statistics(course_id):
     try:
+        # Read and process CSV
         df = pd.read_csv(CSV_PATH)
-        df.columns = df.columns.str.strip()
-        # Convert to integer for comparison
+        
+        # Normalize column names
+        df.columns = [col.strip().replace(' ', '_').lower() for col in df.columns]
+        
         course_id_int = int(course_id)
-        course_data = df[df['Course id'] == course_id_int]  # Keep with space
+        course_data = df[df['course_id'] == course_id_int]
         
         if course_data.empty:
             flash(f'No data found for Course ID: {course_id}', 'warning')
             return redirect(url_for('namerform'))
         
         # Calculate statistics
-        average = round(course_data['Marks'].mean(), 2)
-        maximum = course_data['Marks'].max()
+        average = round(course_data['marks'].mean(), 2)
+        maximum = course_data['marks'].max()
         
-        return render_template('courseid.html',average=average,maximum=maximum,course_id=course_id)
+        # Generate histogram
+        plt.figure(figsize=(8, 6))
+        plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black')
+        plt.title(f'Marks Distribution - Course {course_id}')
+        plt.xlabel('Marks')
+        plt.ylabel('Number of Students')
+        plt.grid(axis='y', alpha=0.75)
+
+        # Create directory for plots
+        plot_dir = os.path.join('static', 'plots')
+        
+        # Simple directory creation - will not throw error if exists
+        os.makedirs(plot_dir, exist_ok=True)
+        
+        # Save plot
+        plot_filename = f'course_{course_id}_histogram.png'
+        plot_path = os.path.join(plot_dir, plot_filename)
+        plt.savefig(plot_path, bbox_inches='tight')
+        plt.close()
+        
+        # Prepare plot URL
+        plot_url = url_for('static', filename=f'plots/{plot_filename}')
+
+        return render_template('courseid.html', 
+                              average=average, 
+                              maximum=maximum, 
+                              course_id=course_id,
+                              plot_url=plot_url)
     except Exception as e:
         flash(f'Error processing course data: {str(e)}', 'danger')
         return redirect(url_for('namerform'))
-
+    
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory('static', filename)
 
 @app.route('/')
 def index():
