@@ -26,7 +26,7 @@ class NamerForm(FlaskForm):
 @app.route('/namerform', methods=['GET','POST'], endpoint='namerform')
 def form():
     form = NamerForm()
-    if form.validate_on_submit():
+    if form.validate_on_submit():   #checks if form is submitted and validated means data was passed for each field
         id_type = form.id_type.data
         id_value = form.id_value.data
         
@@ -41,27 +41,34 @@ def form():
 
 CSV_PATH = 'data.csv'  # Make sure this is in the same directory
 
-@app.route('/student/<student_id>')
-def student_details(student_id):
+@app.route('/student/<student_id>')             #student_id is a variable here
+def student_details(student_id):                #student_id is an argument here 
     try:
-        # Read CSV with proper column names
+    # Read CSV with proper column names
         df = pd.read_csv(CSV_PATH)
-        df.columns = df.columns.str.strip()
-        # Convert to integer for comparison
+     #a string method that removes whitespaces from each string in the column index only leading/trailing spaces.    
+        df.columns = df.columns.str.strip() 
+   
+     # Convert to integer for comparison.student_id_int is a new variable here
         student_id_int = int(student_id)
-        student_data = df[df['Student id'] == student_id_int]  #Keep with spaces
-        
+    # This filters the DataFrame `df` to only include rows where the column 'Student id' (with spaces) matches the integer `student_id_int`.The result is a new DataFrame (subset of the original) stored in `student_data`.
+    #df['Student id']→ Look at the "Student id" column in your class list
+    # == student_id_int→ Find all entries that exactly match the ID number you're searching for
+    # df[ ... ] → Filter the entire class list to keep only the rows where the ID matches
+        student_data = df[df['Student id'] == student_id_int] 
+    #  Key point: This handles the "not found" case gracefully by informing the user and returning them to the form to try again.
         if student_data.empty:
             flash(f'No data found for Student ID: {student_id}', 'warning')
             return redirect(url_for('namerform'))
         
-        # Calculate total marks
+    # Calculate total marks
         total_marks = student_data['Marks'].sum()
         
-        # Convert to list of dictionaries for template
-        records = student_data.to_dict('records')
+    # Flask uses Jinja2 templates. Jinja2 can easily loop over a list of dictionaries but cannot directly handle a pandas DataFrame. The dictionary format is more natural for templating.
+        records = student_data.to_dict('records') 
         
         return render_template('studentid.html',records=records,total_marks=total_marks,student_id=student_id)
+    # Without this, if an error occurs (e.g., file not found, data corruption, unexpected type Flask would return a 500 Internal Server Error page, which is not user-friendly.
     except Exception as e:
         flash(f'Error processing student data: {str(e)}', 'danger')
         return redirect(url_for('namerform'))
@@ -70,44 +77,52 @@ def student_details(student_id):
 @app.route('/course/<course_id>')
 def course_statistics(course_id):
     try:
-        # Read and process CSV
+    # Read and process CSV
         df = pd.read_csv(CSV_PATH)
         
-        # Normalize column names
+    # After Transformation:['student_id', 'first_name', 'exam_date', 'total_marks']
+    ### Best Approach:**Clean the DataFrame once when it's loaded (or reloaded) and then use the cleaned version everywhere.**
         df.columns = [col.strip().replace(' ', '_').lower() for col in df.columns]
         
         course_id_int = int(course_id)
+    # Find all entries that exactly match the ID number you're searching for and only keep the ID selected. 
         course_data = df[df['course_id'] == course_id_int]
         
         if course_data.empty:
             flash(f'No data found for Course ID: {course_id}', 'warning')
             return redirect(url_for('namerform'))
         
-        # Calculate statistics
+# Calculate statistics
         average = round(course_data['marks'].mean(), 2)
         maximum = course_data['marks'].max()
         
-        # Generate histogram
-        plt.figure(figsize=(8, 6))
-        plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black')
+# Generate histogram
+        plt.figure(figsize=(8, 6)) #A blank rectangle 8 inches wide × 6 inches tall
+        plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black') #Skyblue bars with black borders showing how many students got each mark range .Marks (Bins)
+
+# Add Labels and Title
         plt.title(f'Marks Distribution - Course {course_id}')
         plt.xlabel('Marks')
         plt.ylabel('Number of Students')
-        plt.grid(axis='y', alpha=0.75)
+        plt.grid(axis='y', alpha=0.75) #grid lines only for Y-axis
+        # plt.grid(axis='x', alpha=0.25)
 
-        # Create directory for plots
+# Create directory for plots
+# - You decide to save this drawing in a folder named 'plots' inside the 'static' folder of your project.
         plot_dir = os.path.join('static', 'plots')
-        
-        # Simple directory creation - will not throw error if exists
+#Creates folder: your-project/static/plots/
+# Simple directory creation - will not throw error if exists
+# - `os.makedirs` creates the folder if it doesn't exist. If it already exists, it doesn't complain (`exist_ok=True`).
         os.makedirs(plot_dir, exist_ok=True)
         
-        # Save plot
-        plot_filename = f'course_{course_id}_histogram.png'
+# Save plot-Name plot
+        plot_filename = f'course_{course_id}_histogram.png'  #Name of the image
         plot_path = os.path.join(plot_dir, plot_filename)
-        plt.savefig(plot_path, bbox_inches='tight')
+        plt.savefig(plot_path, bbox_inches='tight')  #`bbox_inches='tight'` means you trim any extra white space around the drawing.
         plt.close()
         
-        # Prepare plot URL
+    # Prepare plot URL -http://127.0.0.1:5000/course/2002
+    #URL -`/static/plots/course_2001_histogram.png`
         plot_url = url_for('static', filename=f'plots/{plot_filename}')
 
         return render_template('courseid.html', 
@@ -123,6 +138,9 @@ def course_statistics(course_id):
 def serve_static(filename):
     return send_from_directory('static', filename)
 
+
+
+################################
 @app.route('/')
 def index():
     return render_template("index.html")
