@@ -12,9 +12,9 @@
         <tbody>
             {% for record in records %}
             <tr>
-                <td>{{ record['Student id'] }}</td>
-                <td>{{ record['Course id'] }}</td>
-                <td>{{ record['Marks'] }}</td>
+                <td>{{ record['student_id'] }}</td>
+                <td>{{ record['course_id'] }}</td>
+                <td>{{ record['marks'] }}</td>
             </tr>
             {% endfor %}
             <tr class="table-info">
@@ -25,3 +25,4 @@
     </table>
     <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
 {% endblock %}
+

@@ -8,11 +8,11 @@ import matplotlib
 matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
 import matplotlib.pyplot as plt
 import os
-import logging
+
 
     
 app= Flask(__name__)
-# Create secret key to avoid hackers for Wtf
+# Create secret key to avoid hackers for Wtforms
 app.config['SECRET_KEY']= "CONFIDENTIAL KEY"
 
 # Create a form class
@@ -38,63 +38,50 @@ def form():
     
     return render_template("namerform.html", form=form)
 
-
 CSV_PATH = 'data.csv'  # Make sure this is in the same directory
 
-@app.route('/student/<student_id>')             #student_id is a variable here
-def student_details(student_id):                #student_id is an argument here 
+#Cleaning data at a time to avoid doing duplicate steps
+def load_and_clean_data():
+    df = pd.read_csv(CSV_PATH)
+    df.columns = [col.strip().replace(' ', '_').lower() for col in df.columns]
+    return df
+# After Transformation:['student_id', 'first_name', 'exam_date', 'total_marks']
+
+@app.route('/student/<student_id>')
+def student_details(student_id):
     try:
-    # Read CSV with proper column names
-        df = pd.read_csv(CSV_PATH)
-     #a string method that removes whitespaces from each string in the column index only leading/trailing spaces.    
-        df.columns = df.columns.str.strip() 
-   
-     # Convert to integer for comparison.student_id_int is a new variable here
+        df = load_and_clean_data()  
         student_id_int = int(student_id)
-    # This filters the DataFrame `df` to only include rows where the column 'Student id' (with spaces) matches the integer `student_id_int`.The result is a new DataFrame (subset of the original) stored in `student_data`.
-    #df['Student id']→ Look at the "Student id" column in your class list
-    # == student_id_int→ Find all entries that exactly match the ID number you're searching for
-    # df[ ... ] → Filter the entire class list to keep only the rows where the ID matches
-        student_data = df[df['Student id'] == student_id_int] 
-    #  Key point: This handles the "not found" case gracefully by informing the user and returning them to the form to try again.
+        student_data = df[df['student_id'] == student_id_int]  # Use cleaned column name
+        
         if student_data.empty:
             flash(f'No data found for Student ID: {student_id}', 'warning')
             return redirect(url_for('namerform'))
         
-    # Calculate total marks
-        total_marks = student_data['Marks'].sum()
+        total_marks = student_data['marks'].sum()  # Use cleaned column name
+        records = student_data.to_dict('records')
         
-    # Flask uses Jinja2 templates. Jinja2 can easily loop over a list of dictionaries but cannot directly handle a pandas DataFrame. The dictionary format is more natural for templating.
-        records = student_data.to_dict('records') 
-        
-        return render_template('studentid.html',records=records,total_marks=total_marks,student_id=student_id)
-    # Without this, if an error occurs (e.g., file not found, data corruption, unexpected type Flask would return a 500 Internal Server Error page, which is not user-friendly.
+        return render_template('studentid.html', records=records, total_marks=total_marks, student_id=student_id)
     except Exception as e:
         flash(f'Error processing student data: {str(e)}', 'danger')
         return redirect(url_for('namerform'))
 
+    
 
 @app.route('/course/<course_id>')
 def course_statistics(course_id):
     try:
-    # Read and process CSV
-        df = pd.read_csv(CSV_PATH)
-        
-    # After Transformation:['student_id', 'first_name', 'exam_date', 'total_marks']
-    ### Best Approach:**Clean the DataFrame once when it's loaded (or reloaded) and then use the cleaned version everywhere.**
-        df.columns = [col.strip().replace(' ', '_').lower() for col in df.columns]
-        
+        df = load_and_clean_data()  # Use the helper function
         course_id_int = int(course_id)
-    # Find all entries that exactly match the ID number you're searching for and only keep the ID selected. 
         course_data = df[df['course_id'] == course_id_int]
-        
         if course_data.empty:
             flash(f'No data found for Course ID: {course_id}', 'warning')
             return redirect(url_for('namerform'))
         
-# Calculate statistics
-        average = round(course_data['marks'].mean(), 2)
-        maximum = course_data['marks'].max()
+        average = round(course_data['marks'].mean(), 2)  # Use cleaned column name
+        maximum = course_data['marks'].max()  # Use cleaned column name
+    
+   
         
 # Generate histogram
         plt.figure(figsize=(8, 6)) #A blank rectangle 8 inches wide × 6 inches tall
@@ -178,4 +165,4 @@ def error_page(e):
 
 if __name__=='__main__':
     app.run(debug=True)
-
+    
