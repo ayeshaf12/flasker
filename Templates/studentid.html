@@ -1,5 +1,17 @@
 {% extends 'base.html' %}
 {% block content %}
+
+    {% for message in get_flashed_messages() %}
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>{{ message}}</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+
+<img src="{{ url_for('static', filename='images/northpeak.jpg') }}" alt="North Peak Image">
+
+
+
     <h2>Student Details for ID: {{ student_id }}</h2>
     <table class="table table-bordered">
         <thead class="table-dark">
@@ -15,7 +27,7 @@
                 <td>{{ record['student_id'] }}</td>
                 <td>{{ record['course_id'] }}</td>
                 <td>{{ record['marks'] }}</td>
-            </tr>
+            </tr>   
             {% endfor %}
             <tr class="table-info">
                 <td colspan="2" class="text-center fw-bold">Total Marks</td>
@@ -23,6 +35,8 @@
             </tr>
         </tbody>
     </table>
-    <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
+
+ 
+   <a href="{{ url_for('namerform') }}" class="btn btn-secondary">Back to Form</a>
 {% endblock %}
 

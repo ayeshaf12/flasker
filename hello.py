@@ -21,7 +21,6 @@ class NamerForm(FlaskForm):
     id_value = StringField('', validators=[DataRequired()])
     submit = SubmitField('Submit')
 
-
 # Create namer form
 @app.route('/namerform', methods=['GET','POST'], endpoint='namerform')
 def form():
@@ -60,7 +59,8 @@ def student_details(student_id):
         
         total_marks = student_data['marks'].sum()  # Use cleaned column name
         records = student_data.to_dict('records')
-        
+        flash("Congratulations on your graduation !!!")
+
         return render_template('studentid.html', records=records, total_marks=total_marks, student_id=student_id)
     except Exception as e:
         flash(f'Error processing student data: {str(e)}', 'danger')
@@ -75,14 +75,12 @@ def course_statistics(course_id):
         course_id_int = int(course_id)
         course_data = df[df['course_id'] == course_id_int]
         if course_data.empty:
-            flash(f'No data found for Course ID: {course_id}', 'warning')
+            flash(f'Your Course ID doesnt exist contact your DSO : {course_id}', 'warning')
             return redirect(url_for('namerform'))
         
         average = round(course_data['marks'].mean(), 2)  # Use cleaned column name
         maximum = course_data['marks'].max()  # Use cleaned column name
     
-   
-        
 # Generate histogram
         plt.figure(figsize=(8, 6)) #A blank rectangle 8 inches wide × 6 inches tall
         plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black') #Skyblue bars with black borders showing how many students got each mark range .Marks (Bins)
@@ -127,14 +125,14 @@ def serve_static(filename):
 
 
 
-################################
+
 @app.route('/')
 def index():
     return render_template("index.html")
 
-# @app.route('/user/<name>')
-# def user(name):
-#     return "<h1>Hello {}</h1>".format(name)
+@app.route('/user/<name>')
+def user(name):
+    return "<h1>Hello {}</h1>".format(name)
     
 
 

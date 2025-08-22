@@ -46,6 +46,11 @@
             {% endif %}
         </div>
         
-        {{ form.submit(class="btn btn-primary") }}
+
+<div class="form-group mb-0">  <!-- Added mb-0 here -->
+    {{ form.submit(class="btn btn-primary") }}
+</div>
+
+        <!-- {{ form.submit(class="btn btn-primary") }} -->
     </form>
 {% endblock %}
