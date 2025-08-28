@@ -8,12 +8,56 @@ import matplotlib
 matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
 import matplotlib.pyplot as plt
 import os
-
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime , timezone
 
     
-app= Flask(__name__)
-# Create secret key to avoid hackers for Wtforms
-app.config['SECRET_KEY']= "CONFIDENTIAL KEY"
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
+
+#Create a model
+class Users(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    date_added = db.Column(db.DateTime, default=lambda:datetime.now(timezone.utc))
+#Create a String 
+    def __repr__(self):
+        return '<Name %r>' % self.name
+    
+# Create a form class 
+class UserForm(FlaskForm):
+    name = StringField(" Name", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()])
+    submit = SubmitField("Submit")
+
+# Create a name page
+@app.route('/user/add', methods=['GET','POST'])
+def add_user():
+    form = UserForm()
+    
+    if form.validate_on_submit():
+        existing_user = Users.query.filter_by(email=form.email.data).first()
+        if existing_user is None:
+            user = Users(name=form.name.data, email=form.email.data)
+            db.session.add(user)
+            db.session.commit()
+            flash(f"Hello {form.name.data}! Your account has been created successfully.")
+            return redirect(url_for('success'))
+        else:
+            flash("A user with that email already exists.")
+    
+    # Query all users ordered by date added
+    our_users = Users.query.order_by(Users.date_added).all()
+    
+    return render_template("add_user.html", form=form, our_users=our_users)
+
+# Success page route
+@app.route('/success')
+def success():
+    return render_template("success.html")
 
 # Create a form class
 class NamerForm(FlaskForm):

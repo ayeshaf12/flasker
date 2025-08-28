@@ -1,0 +1,47 @@
+{% extends 'base.html'%}
+
+{% block content %}\77777777/
+
+<h2>User Login Details</h2>
+
+<form method="POST">
+    {{ form.hidden_tag() }}
+    
+    {{ form.name.label }}<br>
+    {{ form.name() }}<br>
+    {% if form.name.errors %}
+        {% for error in form.name.errors %}
+            <span style="color: red;">{{ error }}</span><br>
+        {% endfor %}
+    {% endif %}
+    
+    <br>
+    
+    {{ form.email.label }}<br>
+    {{ form.email() }}<br>
+    {% if form.email.errors %}
+        {% for error in form.email.errors %}
+            <span style="color: red;">{{ error }}</span><br>
+        {% endfor %}
+    {% endif %}
+    
+    <br>
+    
+    {{ form.submit() }}
+</form>
+
+<br>
+
+<!-- Only show the Existing Users section if there are users -->
+{% if our_users %}
+    <h3>Existing Users:</h3>
+    {% for user in our_users %}
+        {{ user.id }}. {{ user.name }} - {{ user.email }}<br>
+    {% endfor %}
+{% endif %}
+
+<br>
+
+<a href="{{ url_for('index') }}">Back to Home</a>
+
+{% endblock %}

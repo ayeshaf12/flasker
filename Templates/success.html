@@ -1,0 +1,27 @@
+{% extends 'base.html'%}
+
+{% block content %}
+
+<div class="success-container">
+    <h2>Registration Successful!</h2>
+    
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="flash-message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <p>Thank you for registering with us.</p>
+    
+    <div class="button-container">
+        <a href="{{ url_for('add_user') }}" class="btn btn-primary">Go Back to Form</a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Back to Home</a>
+    </div>
+</div>
+
+{% endblock %}
