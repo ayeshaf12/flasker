@@ -19,14 +19,16 @@ db = SQLAlchemy(app)
 
 #Create a model
 class Users(db.Model):
-    id = db.Column(db.Integer,primary_key=True)
+    id = db.Column(db.Integer,primary_key=True)  #using PK automatically assigns the ID to each record
     name = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
-    date_added = db.Column(db.DateTime, default=lambda:datetime.now(timezone.utc))
+    date_added = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 #Create a String 
     def __repr__(self):
         return '<Name %r>' % self.name
     
+
+
 # Create a form class 
 class UserForm(FlaskForm):
     name = StringField(" Name", validators=[DataRequired()])
@@ -36,6 +38,7 @@ class UserForm(FlaskForm):
 # Create a name page
 @app.route('/user/add', methods=['GET','POST'])
 def add_user():
+    name=None
     form = UserForm()
     
     if form.validate_on_submit():
@@ -44,15 +47,18 @@ def add_user():
             user = Users(name=form.name.data, email=form.email.data)
             db.session.add(user)
             db.session.commit()
-            flash(f"Hello {form.name.data}! Your account has been created successfully.")
+            name=form.name.data
+            form.name.data=''
+            form.email.data=''
+            flash(f"Hello {name}! Your account has been created successfully.", "success")
             return redirect(url_for('success'))
         else:
-            flash("A user with that email already exists.")
+            flash("A user with that email already exists.", "error")
     
     # Query all users ordered by date added
     our_users = Users.query.order_by(Users.date_added).all()
     
-    return render_template("add_user.html", form=form, our_users=our_users)
+    return render_template("add_user.html", form=form, our_users=our_users,name = name)
 
 # Success page route
 @app.route('/success')
@@ -206,5 +212,7 @@ def error_page(e):
     return render_template("500.html"), 500
 
 if __name__=='__main__':
-    app.run(debug=True)
+     with app.app_context():
+        db.create_all()
+        app.run(debug=True)
     
