@@ -1,35 +1,35 @@
-from flask import Flask, render_template, flash, redirect, url_for, send_from_directory
+from flask import Flask, render_template, flash, redirect, url_for, send_from_directory, request
 from flask_wtf import FlaskForm
 from wtforms import RadioField, StringField, SubmitField
 from wtforms.validators import DataRequired
 import csv
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')  # Set the backend to Agg before importing pyplot
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import os
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime , timezone
+from datetime import datetime, timezone
+import pymysql
+from pymysql.cursors import DictCursor
 
-
-    
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db' 
 
-db = SQLAlchemy(app)
-
-# Create a model 
-class Users(db.Model):
-    id = db.Column(db.Integer,primary_key=True)  #using PK automatically assigns the ID to each record
-    name = db.Column(db.String(200), nullable=False)
-    email = db.Column(db.String(120), nullable=False, unique=True)
-    date_added = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-#Create a String 
-    def __repr__(self):
-        return '<Name %r>' % self.name
-    
-
+# MySQL connection function
+def get_db_connection():
+    try:
+        connection = pymysql.connect(
+            host='localhost',
+            user='root',
+            password='Ummeayesha@123',
+            database='our_users',
+            charset='utf8mb4',
+            cursorclass=DictCursor
+        )
+        return connection
+    except Exception as e:
+        print(f"Error connecting to MySQL: {e}")
+        return None
 
 # Create a form class 
 class UserForm(FlaskForm):
@@ -37,30 +37,82 @@ class UserForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired()])
     submit = SubmitField("Submit")
 
+# Initialize database
+def init_db():
+    connection = None
+    try:
+        connection = get_db_connection()
+        if connection:
+            with connection.cursor() as cursor:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS our_users (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        name VARCHAR(200) NOT NULL,
+                        email VARCHAR(200) NOT NULL UNIQUE,
+                        date_added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                connection.commit()
+                print("Database initialized successfully")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+    finally:
+        if connection:
+            connection.close()
+
 # Create a name page
 @app.route('/user/add', methods=['GET','POST'])
 def add_user():
-    name=None
+    name = None
     form = UserForm()
+    our_users = []
     
     if form.validate_on_submit():
-        existing_user = Users.query.filter_by(email=form.email.data).first()
-        if existing_user is None:
-            user = Users(name=form.name.data, email=form.email.data)
-            db.session.add(user)
-            db.session.commit()
-            name=form.name.data
-            form.name.data=''
-            form.email.data=''
-            flash(f"Hello {name}! Your account has been created successfully.", "success")
-            return redirect(url_for('success'))
-        else:
-            flash("A user with that email already exists.", "error")
+        name = form.name.data
+        email = form.email.data
+        
+        connection = None
+        try:
+            connection = get_db_connection()
+            if connection:
+                with connection.cursor() as cursor:
+                    # Check if email already exists
+                    cursor.execute("SELECT * FROM our_users WHERE email = %s", (email,))
+                    existing_user = cursor.fetchone()
+                    
+                    if existing_user is None:
+                        # Add new user
+                        cursor.execute("INSERT INTO our_users (name, email) VALUES (%s, %s)", (name, email))
+                        connection.commit()
+                        
+                        flash(f"Hello {name}! Your account has been created successfully.", "success")
+                        form.name.data = ''
+                        form.email.data = ''
+                        
+                        return redirect(url_for('success'))
+                    else:
+                        flash("A user with that email already exists.", "error")
+        except Exception as e:
+            flash(f"Error adding user: {str(e)}", "danger")
+        finally:
+            if connection:
+                connection.close()
     
-    # Query all users ordered by date added
-    our_users = Users.query.order_by(Users.date_added).all()
+    # Get all users
+    connection = None
+    try:
+        connection = get_db_connection()
+        if connection:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT * FROM our_users ORDER BY date_added")
+                our_users = cursor.fetchall()
+    except Exception as e:
+        flash(f"Error retrieving users: {str(e)}", "danger")
+    finally:
+        if connection:
+            connection.close()
     
-    return render_template("add_user.html", form=form, our_users=our_users,name = name)
+    return render_template("add_user1.html", form=form, our_users=our_users, name=name)
 
 # Success page route
 @app.route('/success')
@@ -77,11 +129,10 @@ class NamerForm(FlaskForm):
 @app.route('/namerform', methods=['GET','POST'], endpoint='namerform')
 def form():
     form = NamerForm()
-    if form.validate_on_submit():   #checks if form is submitted and validated means data was passed for each field
+    if form.validate_on_submit():
         id_type = form.id_type.data
         id_value = form.id_value.data
         
-        # Match the values to your choices
         if id_type == 'student':
             return redirect(url_for('student_details', student_id=id_value))
         elif id_type == 'course':
@@ -89,27 +140,25 @@ def form():
     
     return render_template("namerform.html", form=form)
 
-CSV_PATH = 'data.csv'  # Make sure this is in the same directory
+CSV_PATH = 'data.csv'
 
-#Cleaning data at a time to avoid doing duplicate steps
 def load_and_clean_data():
     df = pd.read_csv(CSV_PATH)
     df.columns = [col.strip().replace(' ', '_').lower() for col in df.columns]
     return df
-# After Transformation:['student_id', 'first_name', 'exam_date', 'total_marks']
 
 @app.route('/student/<student_id>')
 def student_details(student_id):
     try:
         df = load_and_clean_data()  
         student_id_int = int(student_id)
-        student_data = df[df['student_id'] == student_id_int]  # Use cleaned column name
+        student_data = df[df['student_id'] == student_id_int]
         
         if student_data.empty:
             flash(f'No data found for Student ID: {student_id}', 'warning')
             return redirect(url_for('namerform'))
         
-        total_marks = student_data['marks'].sum()  # Use cleaned column name
+        total_marks = student_data['marks'].sum()
         records = student_data.to_dict('records')
         flash("Congratulations on your graduation !!!")
 
@@ -118,48 +167,34 @@ def student_details(student_id):
         flash(f'Error processing student data: {str(e)}', 'danger')
         return redirect(url_for('namerform'))
 
-    
-
 @app.route('/course/<course_id>')
 def course_statistics(course_id):
     try:
-        df = load_and_clean_data()  # Use the helper function
+        df = load_and_clean_data()
         course_id_int = int(course_id)
         course_data = df[df['course_id'] == course_id_int]
         if course_data.empty:
             flash(f'Your Course ID doesnt exist contact your DSO : {course_id}', 'warning')
             return redirect(url_for('namerform'))
         
-        average = round(course_data['marks'].mean(), 2)  # Use cleaned column name
-        maximum = course_data['marks'].max()  # Use cleaned column name
+        average = round(course_data['marks'].mean(), 2)
+        maximum = course_data['marks'].max()
     
-# Generate histogram
-        plt.figure(figsize=(8, 6)) #A blank rectangle 8 inches wide × 6 inches tall
-        plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black') #Skyblue bars with black borders showing how many students got each mark range .Marks (Bins)
-
-# Add Labels and Title
+        plt.figure(figsize=(8, 6))
+        plt.hist(course_data['marks'], bins=10, color='skyblue', edgecolor='black')
         plt.title(f'Marks Distribution - Course {course_id}')
         plt.xlabel('Marks')
         plt.ylabel('Number of Students')
-        plt.grid(axis='y', alpha=0.75) #grid lines only for Y-axis
-        # plt.grid(axis='x', alpha=0.25)
-
-# Create directory for plots
-# - You decide to save this drawing in a folder named 'plots' inside the 'static' folder of your project.
+        plt.grid(axis='y', alpha=0.75)
+        
         plot_dir = os.path.join('static', 'plots')
-#Creates folder: your-project/static/plots/
-# Simple directory creation - will not throw error if exists
-# - `os.makedirs` creates the folder if it doesn't exist. If it already exists, it doesn't complain (`exist_ok=True`).
         os.makedirs(plot_dir, exist_ok=True)
         
-# Save plot-Name plot
-        plot_filename = f'course_{course_id}_histogram.png'  #Name of the image
+        plot_filename = f'course_{course_id}_histogram.png'
         plot_path = os.path.join(plot_dir, plot_filename)
-        plt.savefig(plot_path, bbox_inches='tight')  #`bbox_inches='tight'` means you trim any extra white space around the drawing.
+        plt.savefig(plot_path, bbox_inches='tight')
         plt.close()
         
-    # Prepare plot URL -http://127.0.0.1:5000/course/2002
-    #URL -`/static/plots/course_2001_histogram.png`
         plot_url = url_for('static', filename=f'plots/{plot_filename}')
 
         return render_template('courseid.html', 
@@ -175,9 +210,6 @@ def course_statistics(course_id):
 def serve_static(filename):
     return send_from_directory('static', filename)
 
-
-
-
 @app.route('/')
 def index():
     return render_template("index.html")
@@ -185,25 +217,18 @@ def index():
 @app.route('/user/<name>')
 def user(name):
     return "<h1>Hello {}</h1>".format(name)
-    
-
 
 @app.route('/add/')
 def add():
     first_name= "Jessica"
-    # Will use safe filter in the template to remove the html tags
-    # Will use striptag filter in the template to remove the html tags
     stuff= "This is a <strong>bold</strong> text "   
     stuff1= "This is a title text "   
     favorite_pizza=["pepperoni","Cheese",49]
     return render_template("user.html",first_name=first_name,stuff=stuff,stuff1=stuff1,favorite_pizza=favorite_pizza)  
-    
-
 
 @app.route('/users/<name>')
 def users(name):
     return render_template("userprofile.html",user_name=name)
-
 
 @app.errorhandler(404)
 def error_page(e):
@@ -213,8 +238,6 @@ def error_page(e):
 def error_page(e):
     return render_template("500.html"), 500
 
-if __name__=='__main__':
-    with app.app_context():
-        db.create_all()
-        app.run(debug=True)
-    
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=True)

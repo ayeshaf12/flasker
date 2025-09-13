@@ -47,7 +47,7 @@
 {% if our_users %}
     <h3>Existing Users:</h3>
     {% for user in our_users %}
-         {{ user.id }}. {{ user.name }} - {{ user.email }} (Recorded: {{ user.date_added.strftime('%Y/%b/%d') }})<br>
+        {{ user.id }}. {{ user.name }} - {{ user.email }} (Joined: {{ user.date_added }})<br>
     {% endfor %}
 {% endif %}
 
